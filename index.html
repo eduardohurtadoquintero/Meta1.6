@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de revisión por pares para artículos científicos">
+  <meta name="theme-color" content="#2563eb">
+  <title>Sistema de Revisión por Pares</title>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Favicon temporal -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  
+  <!-- Indicador de carga global -->
+  <div id="loadingIndicator" class="loading-indicator hidden">
+    <div class="loading-spinner"></div>
+    <p id="loadingText">Cargando...</p>
+  </div>
+  
+  <!-- Indicador de estado offline/online -->
+  <div id="offlineIndicator" class="offline-indicator hidden">
+    📡 Sin conexión - Trabajando offline
+  </div>
+  
+  <!-- Header con selector de rol -->
+  <header class="app-header">
+    <div class="container">
+      <div class="header-content">
+        <h1>📄 Sistema de Revisión por Pares</h1>
+        <div class="role-selector">
+          <label for="roleSelect">Rol actual:</label>
+          <select id="roleSelect">
+            <option value="editor">👨‍💼 Editor (Dr. Carlos)</option>
+            <option value="reviewer">👩‍🔬 Revisora (Dra. Ana)</option>
+            <option value="author">🎓 Autor (Miguel)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <main class="container">
+    
+    <!-- Sección: Subir Artículo (solo para Editor) -->
+    <section id="uploadSection" class="card">
+      <h2>📤 Subir Nuevo Artículo</h2>
+      
+      <form id="uploadForm" class="article-form">
+        <div class="form-group">
+          <label for="title">Título del Artículo *</label>
+          <input 
+            type="text" 
+            id="title" 
+            name="title"
+            required 
+            maxlength="200"
+            placeholder="Ej: Análisis de Algoritmos de Machine Learning"
+          >
+          <small>Máximo 200 caracteres</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="area">Área Temática *</label>
+          <select id="area" name="area" required>
+            <option value="">Seleccione un área...</option>
+            <option value="AI">Inteligencia Artificial</option>
+            <option value="ML">Machine Learning</option>
+            <option value="DataScience">Ciencia de Datos</option>
+            <option value="IoT">Internet de las Cosas</option>
+            <option value="Cybersecurity">Ciberseguridad</option>
+            <option value="SoftwareEngineering">Ingeniería de Software</option>
+          </select>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="authorName">Nombre del Autor *</label>
+            <input 
+              type="text" 
+              id="authorName" 
+              name="authorName"
+              required
+              placeholder="Ej: Dr. Juan Pérez"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="authorEmail">Email del Autor *</label>
+            <input 
+              type="email" 
+              id="authorEmail" 
+              name="authorEmail"
+              required
+              placeholder="juan.perez@universidad.edu"
+            >
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="pdfFile">Archivo PDF *</label>
+          <input 
+            type="file" 
+            id="pdfFile" 
+            name="pdfFile"
+            accept=".pdf" 
+            required
+          >
+          <small>Formato PDF, máximo 10MB</small>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            📤 Subir Artículo
+          </button>
+          <button type="reset" class="btn-secondary">
+            ↺ Limpiar
+          </button>
+        </div>
+      </form>
+    </section>
+    
+    <!-- Sección: Dashboard de Artículos -->
+    <section class="card">
+      <h2>📊 Dashboard de Artículos</h2>
+      
+      <!-- Filtros por estado -->
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-status="all">
+          Todos (<span id="countAll">0</span>)
+        </button>
+        <button class="filter-tab" data-status="received">
+          Recibidos (<span id="countReceived">0</span>)
+        </button>
+        <button class="filter-tab" data-status="in_review">
+          En Revisión (<span id="countInReview">0</span>)
+        </button>
+        <button class="filter-tab" data-status="reviewed">
+          Revisados (<span id="countReviewed">0</span>)
+        </button>
+      </div>
+      
+      <div id="articlesList" class="articles-list">
+        <div class="empty-state">
+          <p>📭 No hay artículos guardados aún.</p>
+          <p class="empty-state-hint">Sube tu primer artículo usando el formulario de arriba.</p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Sección: Información del Sistema (debug) -->
+    <section class="card debug-info">
+      <h3>ℹ️ Información del Sistema</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <strong>PWA Instalada:</strong>
+          <span id="pwaStatus">❌ No</span>
+        </div>
+        <div class="info-item">
+          <strong>Service Worker:</strong>
+          <span id="swStatus">⏳ Verificando...</span>
+        </div>
+        <div class="info-item">
+          <strong>IndexedDB:</strong>
+          <span id="dbStatus">⏳ Verificando...</span>
+        </div>
+        <div class="info-item">
+          <strong>Estado de Red:</strong>
+          <span id="networkStatus">🟢 Online</span>
+        </div>
+      </div>
+    </section>
+    
+  </main>
+  
+  <footer class="app-footer">
+    <div class="container">
+      <p>Sistema de Revisión por Pares - MVP v1.0 | Desarrollado con ISA/IA</p>
+    </div>
+  </footer>
+  
+  <!-- Toast para mensajes -->
+  <div id="toastContainer" class="toast-container"></div>
+  
+  <!-- Scripts -->
+  <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+  <script type="module" src="db.js"></script>
+  <script type="module" src="js/error-handler.js"></script>
+  <script type="module" src="js/loading-indicator.js"></script>
+  <script type="module" src="js/article-manager.js"></script>
+  <script type="module" src="js/app.js"></script>
+  
+</body>
+</html>

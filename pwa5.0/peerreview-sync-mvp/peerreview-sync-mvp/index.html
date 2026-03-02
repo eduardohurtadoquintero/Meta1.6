@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de revisión por pares con sincronización offline-first">
+  <meta name="theme-color" content="#2563eb">
+  <title>Sistema de Revisión por Pares - Sync</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+  
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  
+  <style>
+    /* Estilos adicionales para indicadores de sync */
+    .sync-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #f8fafc;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    
+    .sync-status {
+      font-weight: 500;
+    }
+    
+    .sync-syncing {
+      color: #f59e0b;
+      animation: pulse 2s infinite;
+    }
+    
+    .sync-synced {
+      color: #10b981;
+    }
+    
+    .sync-error {
+      color: #ef4444;
+    }
+    
+    .sync-pending {
+      color: #64748b;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .article-sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    
+    .article-synced {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .article-unsynced {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .sync-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    .btn-sync {
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    
+    .btn-sync:hover {
+      background: var(--primary-dark);
+    }
+    
+    .btn-sync:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  
+  <div id="loadingIndicator" class="loading-indicator hidden">
+    <div class="loading-spinner"></div>
+    <p id="loadingText">Cargando...</p>
+  </div>
+  
+  <div id="offlineIndicator" class="offline-indicator hidden">
+    📡 Sin conexión - Los cambios se sincronizarán al reconectar
+  </div>
+  
+  <header class="app-header">
+    <div class="container">
+      <div class="header-content">
+        <h1>📄 Sistema de Revisión por Pares</h1>
+        <div class="sync-indicator">
+          <span id="syncStatus" class="sync-status">✅ Sincronizado</span>
+        </div>
+        <div class="role-selector">
+          <label for="roleSelect">Rol:</label>
+          <select id="roleSelect">
+            <option value="author">🎓 Autor</option>
+            <option value="editor">👨‍💼 Editor</option>
+            <option value="reviewer">👩‍🔬 Revisor</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <main class="container">
+    
+    <!-- AUTOR: Subir Artículo -->
+    <section id="authorUploadSection" class="card" data-role="author">
+      <h2>📤 Enviar Mi Artículo</h2>
+      
+      <form id="authorUploadForm">
+        <div class="form-group">
+          <label for="authorTitle">Título *</label>
+          <input type="text" id="authorTitle" name="title" required maxlength="200">
+        </div>
+        
+        <div class="form-group">
+          <label for="authorArea">Área *</label>
+          <select id="authorArea" name="area" required>
+            <option value="">Seleccione...</option>
+            <option value="AI">Inteligencia Artificial</option>
+            <option value="ML">Machine Learning</option>
+            <option value="DataScience">Ciencia de Datos</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="authorPdfFile">PDF *</label>
+          <input type="file" id="authorPdfFile" name="pdfFile" accept=".pdf" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="authorAbstract">Resumen</label>
+          <textarea id="authorAbstract" name="abstract" rows="4"></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">📤 Enviar</button>
+          <button type="reset" class="btn-secondary">↺ Limpiar</button>
+        </div>
+      </form>
+    </section>
+    
+    <section class="card" data-role="author">
+      <h2>📊 Mis Artículos</h2>
+      <div id="authorArticlesList" class="articles-list">
+        <div class="empty-state"><p>📭 No has enviado artículos</p></div>
+      </div>
+    </section>
+    
+    <!-- EDITOR: Artículos -->
+    <section id="editorSection" class="card" data-role="editor">
+      <h2>📊 Artículos Recibidos</h2>
+      <div id="editorArticlesList" class="articles-list">
+        <div class="empty-state"><p>📭 No hay artículos</p></div>
+      </div>
+    </section>
+    
+    <!-- REVISOR: Artículos Asignados -->
+    <section class="card" data-role="reviewer">
+      <h2>📚 Artículos Asignados</h2>
+      <div id="reviewerArticlesList" class="articles-list">
+        <div class="empty-state"><p>📭 No tienes artículos asignados</p></div>
+      </div>
+    </section>
+    
+    <!-- Info del Sistema + Sync Stats -->
+    <section class="card debug-info">
+      <h3>ℹ️ Estado del Sistema</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <strong>Rol:</strong>
+          <span id="currentRoleDisplay">Autor</span>
+        </div>
+        <div class="info-item">
+          <strong>Red:</strong>
+          <span id="networkStatus">🟢 Online</span>
+        </div>
+        <div class="info-item">
+          <strong>PWA:</strong>
+          <span id="pwaStatus">❌ No</span>
+        </div>
+        <div class="info-item">
+          <strong>IndexedDB:</strong>
+          <span id="dbStatus">⏳ Verificando...</span>
+        </div>
+        <div class="info-item">
+          <strong>Última sync:</strong>
+          <span id="lastSyncTime">Nunca</span>
+        </div>
+        <div class="info-item">
+          <strong>Pendientes:</strong>
+          <span id="pendingSync">0</span>
+        </div>
+      </div>
+      
+      <div class="sync-actions">
+        <button id="forceSyncBtn" class="btn-sync">🔄 Sincronizar Ahora</button>
+        <button id="viewQueueBtn" class="btn-sync">📋 Ver Cola</button>
+      </div>
+    </section>
+    
+  </main>
+  
+  <footer class="app-footer">
+    <div class="container">
+      <p>Sistema de Revisión por Pares v3.0 - Sync | ISA/IA</p>
+    </div>
+  </footer>
+  
+  <div id="toastContainer" class="toast-container"></div>
+  
+  <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+  <script type="module" src="db.js"></script>
+  <script type="module" src="js/error-handler.js"></script>
+  <script type="module" src="js/loading-indicator.js"></script>
+  <script type="module" src="js/sync-manager.js"></script>
+  <script type="module" src="js/article-manager.js"></script>
+  <script type="module" src="js/comment-system.js"></script>
+  <script type="module" src="js/app.js"></script>
+  
+</body>
+</html>

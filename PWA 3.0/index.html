@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de revisión por pares para artículos científicos">
+  <meta name="theme-color" content="#2563eb">
+  <title>Sistema de Revisión por Pares</title>
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Favicon temporal -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>">
+  
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  
+  <!-- Indicador de carga global -->
+  <div id="loadingIndicator" class="loading-indicator hidden">
+    <div class="loading-spinner"></div>
+    <p id="loadingText">Cargando...</p>
+  </div>
+  
+  <!-- Indicador de estado offline/online -->
+  <div id="offlineIndicator" class="offline-indicator hidden">
+    📡 Sin conexión - Trabajando offline
+  </div>
+  
+  <!-- Header con selector de rol -->
+  <header class="app-header">
+    <div class="container">
+      <div class="header-content">
+        <h1>📄 Sistema de Revisión por Pares</h1>
+        <div class="role-selector">
+          <label for="roleSelect">Rol actual:</label>
+          <select id="roleSelect">
+            <option value="author">🎓 Autor (Miguel Torres)</option>
+            <option value="editor">👨‍💼 Editor (Dr. Carlos)</option>
+            <option value="reviewer">👩‍🔬 Revisora (Dra. Ana)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <main class="container">
+    
+    <!-- ============================================ -->
+    <!-- SECCIÓN: AUTOR - Subir Artículo -->
+    <!-- ============================================ -->
+    <section id="authorUploadSection" class="card" data-role="author">
+      <h2>📤 Enviar Mi Artículo para Revisión</h2>
+      
+      <form id="authorUploadForm" class="article-form">
+        <div class="form-group">
+          <label for="authorTitle">Título del Artículo *</label>
+          <input 
+            type="text" 
+            id="authorTitle" 
+            name="title"
+            required 
+            maxlength="200"
+            placeholder="Ej: Análisis de Algoritmos de Machine Learning"
+          >
+          <small>Máximo 200 caracteres</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="authorArea">Área Temática *</label>
+          <select id="authorArea" name="area" required>
+            <option value="">Seleccione un área...</option>
+            <option value="AI">Inteligencia Artificial</option>
+            <option value="ML">Machine Learning</option>
+            <option value="DataScience">Ciencia de Datos</option>
+            <option value="IoT">Internet de las Cosas</option>
+            <option value="Cybersecurity">Ciberseguridad</option>
+            <option value="SoftwareEngineering">Ingeniería de Software</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="authorPdfFile">Archivo PDF *</label>
+          <input 
+            type="file" 
+            id="authorPdfFile" 
+            name="pdfFile"
+            accept=".pdf" 
+            required
+          >
+          <small>Formato PDF, máximo 10MB</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="authorAbstract">Resumen (opcional)</label>
+          <textarea 
+            id="authorAbstract" 
+            name="abstract"
+            rows="4"
+            maxlength="500"
+            placeholder="Breve descripción del artículo..."
+          ></textarea>
+          <small>Máximo 500 caracteres</small>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            📤 Enviar Artículo
+          </button>
+          <button type="reset" class="btn-secondary">
+            ↺ Limpiar
+          </button>
+        </div>
+      </form>
+    </section>
+    
+    <!-- ============================================ -->
+    <!-- SECCIÓN: AUTOR - Mis Artículos Enviados -->
+    <!-- ============================================ -->
+    <section class="card" data-role="author">
+      <h2>📊 Mis Artículos Enviados</h2>
+      
+      <div id="authorArticlesList" class="articles-list">
+        <div class="empty-state">
+          <p>📭 No has enviado artículos aún.</p>
+          <p class="empty-state-hint">Usa el formulario de arriba para enviar tu primer artículo.</p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- ============================================ -->
+    <!-- SECCIÓN: EDITOR - Artículos Recibidos -->
+    <!-- ============================================ -->
+    <section id="editorSection" class="card" data-role="editor">
+      <h2>📊 Artículos Recibidos para Revisión</h2>
+      
+      <!-- Filtros por estado -->
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-status="all">
+          Todos (<span id="countAll">0</span>)
+        </button>
+        <button class="filter-tab" data-status="received">
+          Pendientes (<span id="countReceived">0</span>)
+        </button>
+        <button class="filter-tab" data-status="in_review">
+          En Revisión (<span id="countInReview">0</span>)
+        </button>
+        <button class="filter-tab" data-status="reviewed">
+          Revisados (<span id="countReviewed">0</span>)
+        </button>
+      </div>
+      
+      <div id="editorArticlesList" class="articles-list">
+        <div class="empty-state">
+          <p>📭 No hay artículos recibidos aún.</p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- ============================================ -->
+    <!-- SECCIÓN: REVISOR - Artículos Asignados -->
+    <!-- ============================================ -->
+    <section class="card" data-role="reviewer">
+      <h2>📚 Artículos Asignados para Revisar</h2>
+      
+      <div id="reviewerArticlesList" class="articles-list">
+        <div class="empty-state">
+          <p>📭 No tienes artículos asignados aún.</p>
+          <p class="empty-state-hint">El editor te asignará artículos para revisar.</p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- ============================================ -->
+    <!-- MODAL: Asignar Revisores (Editor) -->
+    <!-- ============================================ -->
+    <dialog id="assignReviewersDialog">
+      <div class="dialog-header">
+        <h3>Asignar Revisores</h3>
+        <button class="dialog-close" onclick="document.getElementById('assignReviewersDialog').close()">✕</button>
+      </div>
+      
+      <p class="dialog-subtitle">Artículo: <strong id="assignArticleTitle"></strong></p>
+      
+      <div id="reviewersList" class="reviewers-checklist">
+        <!-- Se genera dinámicamente -->
+      </div>
+      
+      <div class="dialog-actions">
+        <button id="confirmAssignReviewers" class="btn-primary">
+          Confirmar Asignación
+        </button>
+        <button class="btn-secondary" onclick="document.getElementById('assignReviewersDialog').close()">
+          Cancelar
+        </button>
+      </div>
+    </dialog>
+    
+    <!-- ============================================ -->
+    <!-- MODAL: Formulario de Revisión (Revisor) -->
+    <!-- ============================================ -->
+    <dialog id="reviewFormDialog">
+      <div class="dialog-header">
+        <h3>Revisión de Artículo</h3>
+        <button class="dialog-close" onclick="document.getElementById('reviewFormDialog').close()">✕</button>
+      </div>
+      
+      <p class="dialog-subtitle">Artículo: <strong id="reviewArticleTitle"></strong></p>
+      
+      <form id="reviewForm">
+        <!-- Criterios de evaluación -->
+        <div class="evaluation-section">
+          <h4>Evaluación Cuantitativa (1-5)</h4>
+          
+          <div class="score-grid">
+            <div class="score-item">
+              <label for="scoreOriginality">Originalidad</label>
+              <input type="range" min="1" max="5" value="3" id="scoreOriginality">
+              <output id="outputOriginality">3</output>
+            </div>
+            
+            <div class="score-item">
+              <label for="scoreMethodology">Metodología</label>
+              <input type="range" min="1" max="5" value="3" id="scoreMethodology">
+              <output id="outputMethodology">3</output>
+            </div>
+            
+            <div class="score-item">
+              <label for="scoreResults">Resultados</label>
+              <input type="range" min="1" max="5" value="3" id="scoreResults">
+              <output id="outputResults">3</output>
+            </div>
+            
+            <div class="score-item">
+              <label for="scoreWriting">Redacción</label>
+              <input type="range" min="1" max="5" value="3" id="scoreWriting">
+              <output id="outputWriting">3</output>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Recomendación -->
+        <div class="form-group">
+          <label for="reviewRecommendation">Recomendación Final *</label>
+          <select id="reviewRecommendation" required>
+            <option value="">Seleccione...</option>
+            <option value="accept">✅ Aceptar</option>
+            <option value="minor_changes">🟡 Cambios Menores</option>
+            <option value="major_changes">🟠 Cambios Mayores</option>
+            <option value="reject">❌ Rechazar</option>
+          </select>
+        </div>
+        
+        <!-- Comentarios detallados -->
+        <div class="form-group">
+          <label for="reviewComments">Comentarios Detallados para el Autor *</label>
+          <textarea 
+            id="reviewComments" 
+            rows="10" 
+            required
+            placeholder="Proporcione retroalimentación constructiva y específica sobre:
+- Fortalezas del trabajo
+- Áreas de mejora
+- Sugerencias específicas
+- Referencias que podrían ser útiles"
+          ></textarea>
+          <small id="commentsCharCount">0 / 100 caracteres mínimos</small>
+        </div>
+        
+        <!-- Comentarios confidenciales para el editor -->
+        <div class="form-group">
+          <label for="reviewConfidentialComments">Comentarios Confidenciales para el Editor (opcional)</label>
+          <textarea 
+            id="reviewConfidentialComments" 
+            rows="4"
+            placeholder="Comentarios que solo verá el editor, no el autor..."
+          ></textarea>
+          <small>Estos comentarios no serán visibles para el autor</small>
+        </div>
+        
+        <div class="dialog-actions">
+          <button type="submit" class="btn-primary">
+            📨 Enviar Revisión
+          </button>
+          <button type="button" id="saveDraftBtn" class="btn-secondary">
+            💾 Guardar Borrador
+          </button>
+        </div>
+      </form>
+    </dialog>
+    
+    <!-- ============================================ -->
+    <!-- MODAL: Ver Comentarios (Autor/Editor) -->
+    <!-- ============================================ -->
+    <dialog id="viewCommentsDialog">
+      <div class="dialog-header">
+        <h3>Comentarios de Revisores</h3>
+        <button class="dialog-close" onclick="document.getElementById('viewCommentsDialog').close()">✕</button>
+      </div>
+      
+      <p class="dialog-subtitle">Artículo: <strong id="commentsArticleTitle"></strong></p>
+      
+      <div id="consolidatedComments" class="comments-container">
+        <!-- Se genera dinámicamente -->
+      </div>
+      
+      <div class="dialog-actions">
+        <button class="btn-secondary" onclick="document.getElementById('viewCommentsDialog').close()">
+          Cerrar
+        </button>
+      </div>
+    </dialog>
+    
+    <!-- Sección: Información del Sistema -->
+    <section class="card debug-info">
+      <h3>ℹ️ Información del Sistema</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <strong>Rol Actual:</strong>
+          <span id="currentRoleDisplay">Autor</span>
+        </div>
+        <div class="info-item">
+          <strong>PWA Instalada:</strong>
+          <span id="pwaStatus">❌ No</span>
+        </div>
+        <div class="info-item">
+          <strong>Service Worker:</strong>
+          <span id="swStatus">⏳ Verificando...</span>
+        </div>
+        <div class="info-item">
+          <strong>IndexedDB:</strong>
+          <span id="dbStatus">⏳ Verificando...</span>
+        </div>
+        <div class="info-item">
+          <strong>Estado de Red:</strong>
+          <span id="networkStatus">🟢 Online</span>
+        </div>
+      </div>
+    </section>
+    
+  </main>
+  
+  <footer class="app-footer">
+    <div class="container">
+      <p>Sistema de Revisión por Pares v2.0 - MVP | Desarrollado con ISA/IA</p>
+    </div>
+  </footer>
+  
+  <!-- Toast para mensajes -->
+  <div id="toastContainer" class="toast-container"></div>
+  
+  <!-- Scripts -->
+  <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
+  <script type="module" src="db.js"></script>
+  <script type="module" src="js/error-handler.js"></script>
+  <script type="module" src="js/loading-indicator.js"></script>
+  <script type="module" src="js/comment-system.js"></script>
+  <script type="module" src="js/article-manager.js"></script>
+  <script type="module" src="js/app.js"></script>
+  
+</body>
+</html>
